@@ -1,0 +1,58 @@
+﻿<Window x:Class="framework_iiw.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:framework_iiw" xmlns:helix="http://helix-toolkit.org/wpf"
+        mc:Ignorable="d"
+        Background="#F2F2F2"
+        WindowState="Maximized"
+        Title="Framework - Slicer IIW" Height="1080" Width="1920">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="150"></RowDefinition>
+            <RowDefinition Height="*"></RowDefinition>
+        </Grid.RowDefinitions>
+
+        <!--The blue top bar contains two columns. To add more columns -> Add multple "ColumnDefinitions" with the width related to the prefered with of each column-->
+        <Grid Grid.Row="0" Width="auto" Background="#2F4C73">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+
+            <!--To assign an element to a column, add "Grid.Column=COLUMN_NUMBER" to the element-->
+            <Button Margin="50 0 0 0" Grid.Column="0" Width="auto" Height="65"  Background="White" HorizontalAlignment="Left" Padding="50 0" FontSize="18px" FontWeight="Bold" Click="Load_Model_Button_Click">Load Model</Button>
+            <Button Margin="0 0 50 0" Grid.Column="1" Width="auto" Height="65"  Background="White" HorizontalAlignment="Right" Padding="50 0" FontSize="18px" FontWeight="Bold" Click="Slice_Model_Button_Click">Slice Model</Button>
+        </Grid>
+
+        <Grid Grid.Row="1" Width="auto">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="860*"></ColumnDefinition>
+                <ColumnDefinition Width="101*"/>
+                <ColumnDefinition Width="960*"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+
+            <Border Margin="50,50,25,50" Grid.Column="0" Background="White" CornerRadius="5" BorderThickness="0.3" BorderBrush="#030F26" Grid.ColumnSpan="2">
+                <helix:HelixViewport3D  Name="objectViewPort" ClipToBounds="True">
+                    <helix:HelixViewport3D.Camera >
+                        <PerspectiveCamera x:Name="camera"
+                            Position="140 0 140" LookDirection="0 1 -1" UpDirection="0 0 1" 
+                       />
+                    </helix:HelixViewport3D.Camera>
+
+                    <helix:SunLight />
+                </helix:HelixViewport3D>
+            </Border>
+
+            <TextBox Focusable="False" Grid.Column="1" BorderThickness="0.2"  Margin="0,136,50,0" x:Name="clippingHeight" Text="{Binding Value, ElementName=clippingPlaneSlider, StringFormat=N0, UpdateSourceTrigger=PropertyChanged}" TextAlignment="center"  HorizontalAlignment="Right" VerticalAlignment="Top" Width="32" Height="16" />
+            <Slider Focusable="False" Grid.Column="1" Margin="0,157,50,150" ValueChanged="ClippingPlaneSlider_ValueChanged" Name="clippingPlaneSlider"  Orientation="Vertical" TickPlacement="BottomRight" TickFrequency="1" IsSnapToTickEnabled="True" HorizontalAlignment="Right" Width="24" />
+
+            <Border Name="canvasBorder" Margin="25,50,50,50" Grid.Column="2" Background="White" CornerRadius="5" BorderThickness="0.3" BorderBrush="#030F26">
+                <Canvas Name="canvas" />
+            </Border>
+
+        </Grid>
+
+    </Grid>
+</Window>
