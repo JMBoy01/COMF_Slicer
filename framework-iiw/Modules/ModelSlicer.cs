@@ -40,7 +40,7 @@ namespace framework_iiw.Modules
             for (var idx = 0; idx < totalAmountOfLayers; idx++)
             {
                 var layer = SliceModelAtSpecificLayer(idx * SlicerSettings.LayerHeight, meshGeometry3D, triangleIndices, positions);
-
+                layer = ProcessContours(layer);   //dit moet ik aanpassen want werkt niet en moet werken yes
                 layers.Add(layer);
             }
 
@@ -54,18 +54,18 @@ namespace framework_iiw.Modules
         private PathsD SliceModelAtSpecificLayer(double layer, MeshGeometry3D meshGeometry, List<int> triangleIndices, List<Point3D> positions)
         {
             var slicingPlaneHeight = GetSlicingPlaneHeight(meshGeometry.Bounds.Z, layer);
-            Console.WriteLine("slicingPlaneHeight:");
-            Console.WriteLine(slicingPlaneHeight);
+            //Console.WriteLine("slicingPlaneHeight:");
+            //Console.WriteLine(slicingPlaneHeight);
             
             // Get paths according to slicing
             var paths = SlicingAlgorithm(slicingPlaneHeight, triangleIndices, positions);
-            Console.WriteLine("paths: ");
-            Console.WriteLine(paths);
+            // Console.WriteLine("paths: ");
+            // Console.WriteLine(paths);
 
             // Combine paths
             var combinedPaths = ConnectLineSegments(paths);
-            Console.WriteLine("combinedPaths: ");
-            Console.WriteLine(combinedPaths);
+            // Console.WriteLine("combinedPaths: ");
+            // Console.WriteLine(combinedPaths);
             // Adjust to line segments
 
             return combinedPaths;
@@ -78,15 +78,15 @@ namespace framework_iiw.Modules
         private List<LineSegment> SlicingAlgorithm(double slicingPlaneHeight, List<int> triangleIndices, List<Point3D> positions)
         {
             var paths = new List<LineSegment>();
-            Debug.WriteLine(triangleIndices);
+            //Debug.WriteLine(triangleIndices);
             for (int i = 0; i < triangleIndices.Count; i += 3)
             {
                 Point3D p1 = positions[triangleIndices[i]];
                 Point3D p2 = positions[triangleIndices[i + 1]];
                 Point3D p3 = positions[triangleIndices[i + 2]];
-                //check of triangle intersect met plane op height slicingPlaneHeight
+
                 Vector3D planeNormal = new Vector3D(0, 0, 1);
-                var intersections = FindTrianglePlaneIntersections(p1, p2, p3, planeNormal, slicingPlaneHeight);
+                var intersections = FindTrianglePlaneIntersections(p1, p2, p3, planeNormal, -slicingPlaneHeight);
                 if (intersections.Count == 3)
                 {
 
@@ -143,39 +143,51 @@ namespace framework_iiw.Modules
 
         private double GetSlicingPlaneHeight(double zOffset, double layer)
         {
-            return zOffset + (layer * SlicerSettings.LayerHeight);
+            //return zOffset + (layer * SlicerSettings.LayerHeight);
+            return layer;
         }
 
         // --- Path Combining Algorithm
         
-        private PathsD ConnectLineSegments(List<LineSegment> lineSegments) {
-            if (lineSegments.Count == 0) return new PathsD(); // Check for empty list
+        private PathsD ConnectLineSegments(List<LineSegment> lineSegments) 
+        {
+            if (lineSegments.Count == 0) return new PathsD(); 
+            double distanceThreshold = 5;
+            PathsD path = new PathsD(); 
             
-            PathsD path = new PathsD(); // Make return variable
-
-            List<LineSegment> lineSegmentsCopy = new List<LineSegment>(lineSegments); // Copy list to work with
+            List<LineSegment> lineSegmentsCopy = new List<LineSegment>(lineSegments); 
             while (lineSegmentsCopy.Count > 0) {
-                PathD currentPath = new PathD(); // Make PathD to later add to PathsD return variable
-                LineSegment currentSegment = lineSegmentsCopy[0]; // Get the first segment in the list
+                PathD currentPath = new PathD(); 
+                LineSegment currentSegment = lineSegmentsCopy[0];
 
-                PointD Start = currentSegment.GetPoints()[0]; // Get first PointD from current segment
-                PointD End = currentSegment.GetPoints()[^1]; // Get last PointD from current segment
+                PointD Start = currentSegment.GetPoints()[0];
+                PointD End = currentSegment.GetPoints()[^1]; 
 
-                currentPath.Add(Start); // Add Start and End PointD to currentPath
+                currentPath.Add(Start); 
                 currentPath.Add(End);
 
-                lineSegmentsCopy.RemoveAt(0); // Remove the currentSegment from the list to make next segment be the first element for next loop
+                lineSegmentsCopy.RemoveAt(0); 
 
                 bool pathClosed = false;
 
                 while (!pathClosed && lineSegmentsCopy.Count > 0) {
-                    // Get the segment where the Start is the same as the current End.
-                    int nextSegmentIndex = lineSegmentsCopy.FindIndex(seg => seg.GetPoints()[0].Equals(End));
-
-                    // If next segment was found add the end of that 'new' currentSegment to the path and remove it from the list.
+                    // Get the segment where the Start is the same as the current End or the End is the same as the current End.
+                    int nextSegmentIndex = lineSegmentsCopy.FindIndex(seg => seg.GetPoints()[0].Equals(End) || seg.GetPoints()[^1].Equals(End));
                     if (nextSegmentIndex != -1) {
                         currentSegment = lineSegmentsCopy[nextSegmentIndex];
-                        currentPath.Add(currentSegment.GetPoints()[currentSegment.GetPoints().Count - 1]);
+                        PointD nextPoint;
+                        
+                        // Determine the correct point to continue the path
+                        if (currentSegment.GetPoints()[0].Equals(End)) {
+                            nextPoint = currentSegment.GetPoints()[^1];
+                        } else {
+                            nextPoint = currentSegment.GetPoints()[0];
+                            // Reverse the segment to maintain continuity
+                            currentSegment.GetPoints().Reverse();
+                        }
+
+                        End = nextPoint;
+                        currentPath.Add(End);
 
                         lineSegmentsCopy.RemoveAt(nextSegmentIndex);
 
@@ -188,12 +200,15 @@ namespace framework_iiw.Modules
                         break;
                     }
                 }
-
-                path.Add(currentPath);
+                if(currentPath.Count > 2) 
+                {
+                    path.Add(currentPath);
+                }
             }
 
             return path;
         }
+
 
         // ------
 
@@ -230,6 +245,71 @@ namespace framework_iiw.Modules
             sliderValue = newValue;
         }
     
-        // ------
+        private PathsD ProcessContours(PathsD contours)
+        {
+            /*
+            PathsD pathResult = new PathsD();
+            ClipperD clipper = new ClipperD();
+            clipper.AddSubject(contours);
+            clipper.Execute(ClipType.Xor, FillRule.EvenOdd, pathResult);
+    
+            double nozzleDiameter = 3;
+            double offset = nozzleDiameter / 2;
+
+            pathResult = Clipper.InflatePaths(pathResult, offset, JoinType.Miter, EndType.Polygon);
+            return pathResult;*/
+            PathsD outerPaths = new PathsD();
+            PathsD innerPaths = new PathsD();
+            double nozzleDiameter = 3;
+            double offset = nozzleDiameter / 2;
+
+            ClipperD clipperOuter = new ClipperD();
+            clipperOuter.AddSubject(contours);
+            clipperOuter.Execute(ClipType.Xor, FillRule.EvenOdd, outerPaths);
+
+            outerPaths = Clipper.InflatePaths(outerPaths, offset, JoinType.Miter, EndType.Polygon);
+
+            ClipperD clipperInner = new ClipperD();
+            clipperInner.AddSubject(contours);
+            clipperInner.Execute(ClipType.Xor, FillRule.EvenOdd, innerPaths);
+
+            innerPaths = Clipper.InflatePaths(innerPaths, -offset, JoinType.Miter, EndType.Polygon);
+            innerPaths.AddRange(outerPaths);
+            return innerPaths;
+
+        }
+
+        public void generateGCodes(PathsD paths) 
+        {
+            
+            List<string> gcodes = new List<string>();
+            foreach (PathD path in paths)
+            {
+                var zHeight = SlicerSettings.LayerHeight*paths.IndexOf(path);
+                if (path.Count > 0)
+                {
+                    var start = path[0];
+                    // Move to the starting point of the path
+                    gcodes.Add($"G0 X{start.x} Y{start.y}");
+
+                    // Loop through all points in the path
+                    foreach (var point in path)
+                    {
+                        gcodes.Add($"G1 X{point.x} Y{point.y} Z{zHeight}");
+                    }
+                }
+            }
+            SaveToFile("testfile",gcodes);
+        }
+        
+        private void SaveToFile(string filename,List<string> gcodes)
+        {
+            using System.IO.StreamWriter file = new System.IO.StreamWriter(filename);
+            foreach (string line in gcodes)
+            {
+                file.WriteLine(line);
+            }
+        }
     }
 }
+

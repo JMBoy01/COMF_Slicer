@@ -4,6 +4,7 @@ using framework_iiw.Settings;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -113,7 +114,7 @@ namespace framework_iiw
 
         private void ClippingPlaneSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            modelSlicer.SetSliderValue(clippingPlaneSlider.Value);
+            //modelSlicer.SetSliderValue(clippingPlaneSlider.Value);
 
             var clippingPlaneSliderValue = clippingPlaneSlider.Value * SlicerSettings.LayerHeight;
 
@@ -121,9 +122,10 @@ namespace framework_iiw
 
             if (layers == null) return;
 
-            var slicedLayer = layers[(int)clippingPlaneSlider.Value];
+            //var slicedLayer = layers[(int)clippingPlaneSlider.Value];*/
 
-            pathsRenderer.RenderPaths(slicedLayer);
+            pathsRenderer.RenderPaths(layers[Convert.ToInt32(clippingPlaneSlider.Value)]);
+            Console.WriteLine(clippingPlaneSlider.Value);
         }
 
         // ------
