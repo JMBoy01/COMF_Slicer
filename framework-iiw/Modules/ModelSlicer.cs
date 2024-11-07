@@ -42,10 +42,12 @@ namespace framework_iiw.Modules
                 var layer = SliceModelAtSpecificLayer(idx * SlicerSettings.LayerHeight, meshGeometry3D, triangleIndices, positions);
                 layer = ProcessContours(layer);   //dit moet ik aanpassen want werkt niet en moet werken yes
                 layers.Add(layer);
+                generateGCodes(layer);
             }
 
             // var layer = SliceModelAtSpecificLayer(sliderValue, meshGeometry3D, triangleIndices, positions);
             // var layers = new List<PathsD>{ layer };
+            
             return layers;
         }
 
@@ -304,7 +306,7 @@ namespace framework_iiw.Modules
         
         private void SaveToFile(string filename,List<string> gcodes)
         {
-            using System.IO.StreamWriter file = new System.IO.StreamWriter(filename);
+            using System.IO.StreamWriter file = new System.IO.StreamWriter(filename, true);
             foreach (string line in gcodes)
             {
                 file.WriteLine(line);
