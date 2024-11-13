@@ -125,7 +125,7 @@ namespace framework_iiw
             //var slicedLayer = layers[(int)clippingPlaneSlider.Value];*/
 
             pathsRenderer.RenderPaths(layers[Convert.ToInt32(clippingPlaneSlider.Value)]);
-            Console.WriteLine(clippingPlaneSlider.Value);
+            // Console.WriteLine(clippingPlaneSlider.Value);
         }
 
         // ------

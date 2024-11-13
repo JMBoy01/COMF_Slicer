@@ -40,8 +40,12 @@ namespace framework_iiw.Modules
             for (var idx = 0; idx < totalAmountOfLayers; idx++)
             {
                 var layer = SliceModelAtSpecificLayer(idx * SlicerSettings.LayerHeight, meshGeometry3D, triangleIndices, positions);
-                layer = ProcessContours(layer);   //dit moet ik aanpassen want werkt niet en moet werken yes
-                layers.Add(layer);
+                var layerWithShell = ProcessContours(layer);
+                var infillPaths = ProcessInfill(layer, meshGeometry3D); // TODO
+
+                // layerWithShell.AddRange(infillPaths);
+                layers.Add(infillPaths);
+
                 generateGCodes(layer);
             }
 
@@ -279,6 +283,59 @@ namespace framework_iiw.Modules
             innerPaths.AddRange(outerPaths);
             return innerPaths;
 
+        }
+
+        private PathsD ProcessInfill(PathsD layer, MeshGeometry3D meshGeometry3D) 
+        {
+            var meshBounds = meshGeometry3D.Bounds;
+            
+            // Bepaal de bounding box van het model in X en Y
+            double minX = meshBounds.X;
+            double minY = meshBounds.Y;
+            double maxX = meshBounds.X + meshBounds.SizeX;
+            double maxY = meshBounds.Y + meshBounds.SizeY;
+
+            // Console.WriteLine($"meshBounds -> minX: {minX} | minY: {minY} | maxX: {maxX} | maxY: {maxY}");
+            
+            // Bereken de infill-spatiëring (bijvoorbeeld 10% van de nozzle-diameter of een andere waarde)
+            double lineSpacing = 5.0; // Aanpassen aan de gewenste infill-dichtheid
+            
+            // Genereer het rasterpatroon
+            var gridLines = new PathsD();
+            
+            // Horizontale lijnen
+            for (double y = minY; y <= maxY; y += lineSpacing)
+            {
+                PathD horizontalLine = new PathD 
+                {
+                    new PointD(minX, y),
+                    new PointD(maxX, y)
+                };
+                gridLines.Add(horizontalLine);
+            }
+            
+            // Verticale lijnen
+            for (double x = minX; x <= maxX; x += lineSpacing)
+            {
+                PathD verticalLine = new PathD 
+                {
+                    new PointD(x, minY),
+                    new PointD(x, maxY)
+                };
+                gridLines.Add(verticalLine);
+            }
+            
+            // Intersecteer het grid met de polygonen van de laag met Clipper2Lib
+            var infillPaths = new PathsD();
+            ClipperD clipper = new ClipperD();
+            clipper.AddOpenSubject(gridLines);
+            clipper.AddClip(layer);
+            clipper.Execute(ClipType.Intersection, FillRule.NonZero, infillPaths);
+
+            Console.WriteLine($"infillPaths: {infillPaths.Count}");
+            
+            // layer.AddRange(infillPaths);
+            return infillPaths;
         }
 
         public void generateGCodes(PathsD paths) 
