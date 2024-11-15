@@ -46,14 +46,17 @@ namespace framework_iiw.Modules
                 // layerWithShell.AddRange(infillPaths);
                 layers.Add(infillPaths);
 
-                generateGCodes(layer);
+                
             }
-
+            generateGCodes(layers);
             // var layer = SliceModelAtSpecificLayer(sliderValue, meshGeometry3D, triangleIndices, positions);
             // var layers = new List<PathsD>{ layer };
             
             return layers;
         }
+
+        
+
 
         // --- Slice Object At Specific Layer
 
@@ -328,9 +331,12 @@ namespace framework_iiw.Modules
             // Intersecteer het grid met de polygonen van de laag met Clipper2Lib
             var infillPaths = new PathsD();
             ClipperD clipper = new ClipperD();
-            clipper.AddOpenSubject(gridLines);
-            clipper.AddClip(layer);
-            clipper.Execute(ClipType.Intersection, FillRule.NonZero, infillPaths);
+
+            clipper.AddPaths(gridLines,PathType.Subject, false);
+            clipper.AddPaths(layer,PathType.Clip, true);
+            // clipper.AddOpenSubject(gridLines);
+            // clipper.AddClip(layer);
+            clipper.Execute(ClipType.Union,FillRule.NonZero, infillPaths);
 
             Console.WriteLine($"infillPaths: {infillPaths.Count}");
             
@@ -338,32 +344,66 @@ namespace framework_iiw.Modules
             return infillPaths;
         }
 
-        public void generateGCodes(PathsD paths) 
+        private void generateGCodes(List<PathsD> layers)
         {
             
-            List<string> gcodes = new List<string>();
-            foreach (PathD path in paths)
+            
+            List<string> gcodes = new List<string>
             {
-                var zHeight = SlicerSettings.LayerHeight*paths.IndexOf(path);
-                if (path.Count > 0)
-                {
-                    var start = path[0];
-                    // Move to the starting point of the path
-                    gcodes.Add($"G0 X{start.x} Y{start.y}");
+                "M140 S60",
+                "M190 S60",
+                "M104 S200",
+                "M109 S200",
+                "M82",
+                "G28",
+                "G92 E0",
+                "G1 Z2.0 F3000",
+                "G1 X0.1 Y20 Z0.3 F5000",
+                "G1 X0.1 Y200 Z0.3 F1500 E15",
+                "G1 X0.4 Y200 Z0.3 F5000",
+                "G1 X0.4 Y20 Z0.3 F1500 E30",
+                "M107"
+            };
 
-                    // Loop through all points in the path
-                    foreach (var point in path)
+            foreach (PathsD paths in layers)
+            {
+                foreach (PathD path in paths)
+                {
+                    var zHeight = SlicerSettings.LayerHeight*paths.IndexOf(path);
+                    if (path.Count > 0)
                     {
-                        gcodes.Add($"G1 X{point.x} Y{point.y} Z{zHeight}");
+                        var start = path[0];
+                        // Move to the starting point of the path
+                        gcodes.Add($"G0 X{start.x} Y{start.y}");
+
+                        // Loop through all points in the path
+                        foreach (var point in path)
+                        {
+                            gcodes.Add($"G1 X{point.x} Y{point.y} Z{zHeight}");
+                        }
                     }
                 }
             }
-            SaveToFile("testfile",gcodes);
+
+            gcodes.Add("M140 S0");
+            gcodes.Add("M107");
+            gcodes.Add("M220 S100");
+            gcodes.Add("M221 S100");
+            gcodes.Add("G91");
+            gcodes.Add("G1 F1800 E-3");
+            gcodes.Add("G1 F3000 Z20");
+            gcodes.Add("G90");
+            gcodes.Add("G1 X0 Y235 F1000");
+            gcodes.Add("M107");
+            gcodes.Add("M84");
+            gcodes.Add("M82");
+            gcodes.Add("M104 S0");
+            SaveToFile("testfile.gcode",gcodes);
         }
         
         private void SaveToFile(string filename,List<string> gcodes)
         {
-            using System.IO.StreamWriter file = new System.IO.StreamWriter(filename, true);
+            using System.IO.StreamWriter file = new System.IO.StreamWriter(filename, false);
             foreach (string line in gcodes)
             {
                 file.WriteLine(line);
