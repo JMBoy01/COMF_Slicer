@@ -355,9 +355,10 @@ namespace framework_iiw.Modules
                 "G1 X0.4 Y20 Z0.3 F1500 E30",
                 "M107"
             };
-
+            double height = 0;
             foreach (PathsD paths in layers)
             {
+                height += SlicerSettings.LayerHeight;
                 foreach (PathD path in paths)
                 {
                     var zHeight = SlicerSettings.LayerHeight*paths.IndexOf(path);
@@ -365,12 +366,12 @@ namespace framework_iiw.Modules
                     {
                         var start = path[0];
                         // Move to the starting point of the path
-                        gcodes.Add($"G0 X{start.x} Y{start.y}");
+                        gcodes.Add($"G0 X{start.x} Y{start.y} Z{height}");
 
                         // Loop through all points in the path
                         foreach (var point in path)
                         {
-                            gcodes.Add($"G1 X{point.x} Y{point.y} Z{zHeight}");
+                            gcodes.Add($"G1 X{point.x} Y{point.y} Z{height}");
                         }
                     }
                 }
