@@ -273,7 +273,7 @@ namespace framework_iiw.Modules
             clipperInner.AddSubject(contours);
             clipperInner.Execute(ClipType.Xor, FillRule.EvenOdd, innerShell);
 
-            innerShell = Clipper.InflatePaths(innerShell, -(2.5 + SlicerSettings.NozzleThickness * 1.5), JoinType.Miter, EndType.Polygon);
+            innerShell = Clipper.InflatePaths(innerShell, -(SlicerSettings.NozzleThickness * 1.5), JoinType.Miter, EndType.Polygon);
             innerShell = Clipper.SimplifyPaths(innerShell, 0.1);
 
             return new List<PathsD>{outerShell, innerShell};
