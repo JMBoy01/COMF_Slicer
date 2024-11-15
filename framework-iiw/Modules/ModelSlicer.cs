@@ -39,18 +39,21 @@ namespace framework_iiw.Modules
 
             for (var idx = 0; idx < totalAmountOfLayers; idx++)
             {
-                var layer = SliceModelAtSpecificLayer(idx * SlicerSettings.LayerHeight, meshGeometry3D, triangleIndices, positions);
-                var layerWithShell = ProcessContours(layer);
-                var infillPaths = ProcessInfill(layer, meshGeometry3D); // TODO
+                PathsD layer = SliceModelAtSpecificLayer(idx * SlicerSettings.LayerHeight, meshGeometry3D, triangleIndices, positions);
+                List<PathsD> layerWithShell = ProcessContours(layer); // Return layerWithShell = {outerShell, innerShell}
+                PathsD outerShell = layerWithShell[0];
+                PathsD innerShell = layerWithShell[1];
 
-                layerWithShell.AddRange(infillPaths);
-                layers.Add(layerWithShell);
+                PathsD infillPaths = ProcessInfill(innerShell, meshGeometry3D);
 
-                
+                PathsD processedLayer = new PathsD();
+                processedLayer.AddRange(outerShell);
+                processedLayer.AddRange(innerShell);
+                processedLayer.AddRange(infillPaths);
+
+                layers.Add(processedLayer);
             }
             generateGCodes(layers);
-            // var layer = SliceModelAtSpecificLayer(sliderValue, meshGeometry3D, triangleIndices, positions);
-            // var layers = new List<PathsD>{ layer };
             
             return layers;
         }
@@ -153,7 +156,7 @@ namespace framework_iiw.Modules
         private double GetSlicingPlaneHeight(double zOffset, double layer)
         {
             //return zOffset + (layer * SlicerSettings.LayerHeight);
-            return layer;
+            return zOffset + layer + 0.000000001;
         }
 
         // --- Path Combining Algorithm
@@ -254,41 +257,29 @@ namespace framework_iiw.Modules
             sliderValue = newValue;
         }
     
-        private PathsD ProcessContours(PathsD contours)
+        private List<PathsD> ProcessContours(PathsD contours)
         {
-            /*
-            PathsD pathResult = new PathsD();
-            ClipperD clipper = new ClipperD();
-            clipper.AddSubject(contours);
-            clipper.Execute(ClipType.Xor, FillRule.EvenOdd, pathResult);
-    
-            double nozzleDiameter = 3;
-            double offset = nozzleDiameter / 2;
-
-            pathResult = Clipper.InflatePaths(pathResult, offset, JoinType.Miter, EndType.Polygon);
-            return pathResult;*/
-            PathsD outerPaths = new PathsD();
-            PathsD innerPaths = new PathsD();
-            // double nozzleDiameter = 3;
-            double offset = SlicerSettings.NozzleThickness / 2;
+            PathsD outerShell = new PathsD();
+            PathsD innerShell = new PathsD();
 
             ClipperD clipperOuter = new ClipperD();
             clipperOuter.AddSubject(contours);
-            clipperOuter.Execute(ClipType.Xor, FillRule.EvenOdd, outerPaths);
+            clipperOuter.Execute(ClipType.Xor, FillRule.EvenOdd, outerShell);
 
-            outerPaths = Clipper.InflatePaths(outerPaths, offset, JoinType.Miter, EndType.Polygon);
+            outerShell = Clipper.InflatePaths(outerShell, -(SlicerSettings.NozzleThickness * 0.5), JoinType.Miter, EndType.Polygon);
+            outerShell = Clipper.SimplifyPaths(outerShell, 0.1);
 
             ClipperD clipperInner = new ClipperD();
             clipperInner.AddSubject(contours);
-            clipperInner.Execute(ClipType.Xor, FillRule.EvenOdd, innerPaths);
+            clipperInner.Execute(ClipType.Xor, FillRule.EvenOdd, innerShell);
 
-            innerPaths = Clipper.InflatePaths(innerPaths, -offset, JoinType.Miter, EndType.Polygon);
-            innerPaths.AddRange(outerPaths);
-            return innerPaths;
+            innerShell = Clipper.InflatePaths(innerShell, -(2.5 + SlicerSettings.NozzleThickness * 1.5), JoinType.Miter, EndType.Polygon);
+            innerShell = Clipper.SimplifyPaths(innerShell, 0.1);
 
+            return new List<PathsD>{outerShell, innerShell};
         }
 
-        private PathsD ProcessInfill(PathsD layer, MeshGeometry3D meshGeometry3D) 
+        private PathsD ProcessInfill(PathsD innerShell, MeshGeometry3D meshGeometry3D) 
         {
             var meshBounds = meshGeometry3D.Bounds;
             
@@ -328,32 +319,26 @@ namespace framework_iiw.Modules
                 };
                 gridLines.Add(verticalLine);
             }
-            
-            // Bereken de inner shells om deze te gebruiken voor de infill te clippen
-            var innerPaths = new PathsD();
-            ClipperD clipperInner = new ClipperD();
-            clipperInner.AddSubject(layer);
-            clipperInner.Execute(ClipType.Xor, FillRule.EvenOdd, innerPaths);
 
-            innerPaths = Clipper.InflatePaths(innerPaths, -(SlicerSettings.NozzleThickness / 2), JoinType.Miter, EndType.Polygon);
-
+            // gridLines = Clipper.InflatePaths(gridLines, -(SlicerSettings.NozzleThickness * 0.5), JoinType.Miter, EndType.Square, 1);
+        
             // Intersecteer het grid met de polygonen van de laag met Clipper2Lib
             var _ = new PathsD();
             var infillPathsOpen = new PathsD();
             
             ClipperD clipper = new ClipperD();
             clipper.AddOpenSubject(gridLines);
-            clipper.AddClip(innerPaths);
+            clipper.AddPaths(innerShell, PathType.Clip, false);
             clipper.Execute(ClipType.Intersection, FillRule.NonZero, _, infillPathsOpen);
+
+            // Inflate het uitkomende infill patroon de helft van de nozzle dikte naar binnen zodat infill niet meer buiten de inner shell gaat.
+            infillPathsOpen = Clipper.InflatePaths(infillPathsOpen, -(SlicerSettings.NozzleThickness * 0.5), JoinType.Miter, EndType.Square);
             
-            // layer.AddRange(infillPathsOpen);
             return infillPathsOpen;
         }
 
         private void generateGCodes(List<PathsD> layers)
-        {
-            
-            
+        {            
             List<string> gcodes = new List<string>
             {
                 "M140 S60",
@@ -404,6 +389,7 @@ namespace framework_iiw.Modules
             gcodes.Add("M84");
             gcodes.Add("M82");
             gcodes.Add("M104 S0");
+
             SaveToFile("testfile.gcode",gcodes);
         }
         
