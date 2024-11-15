@@ -43,8 +43,8 @@ namespace framework_iiw.Modules
                 var layerWithShell = ProcessContours(layer);
                 var infillPaths = ProcessInfill(layer, meshGeometry3D); // TODO
 
-                // layerWithShell.AddRange(infillPaths);
-                layers.Add(infillPaths);
+                layerWithShell.AddRange(infillPaths);
+                layers.Add(layerWithShell);
 
                 
             }
@@ -269,8 +269,8 @@ namespace framework_iiw.Modules
             return pathResult;*/
             PathsD outerPaths = new PathsD();
             PathsD innerPaths = new PathsD();
-            double nozzleDiameter = 3;
-            double offset = nozzleDiameter / 2;
+            // double nozzleDiameter = 3;
+            double offset = SlicerSettings.NozzleThickness / 2;
 
             ClipperD clipperOuter = new ClipperD();
             clipperOuter.AddSubject(contours);
@@ -301,13 +301,14 @@ namespace framework_iiw.Modules
             // Console.WriteLine($"meshBounds -> minX: {minX} | minY: {minY} | maxX: {maxX} | maxY: {maxY}");
             
             // Bereken de infill-spatiëring (bijvoorbeeld 10% van de nozzle-diameter of een andere waarde)
-            double lineSpacing = 5.0; // Aanpassen aan de gewenste infill-dichtheid
+            double lineSpacingX = (maxX - minX)/10; // Aanpassen aan de gewenste infill-dichtheid
+            double lineSpacingY = (maxY - minY)/10; // Aanpassen aan de gewenste infill-dichtheid
             
             // Genereer het rasterpatroon
             var gridLines = new PathsD();
             
             // Horizontale lijnen
-            for (double y = minY; y <= maxY; y += lineSpacing)
+            for (double y = minY; y <= maxY; y += lineSpacingY)
             {
                 PathD horizontalLine = new PathD 
                 {
@@ -318,7 +319,7 @@ namespace framework_iiw.Modules
             }
             
             // Verticale lijnen
-            for (double x = minX; x <= maxX; x += lineSpacing)
+            for (double x = minX; x <= maxX; x += lineSpacingX)
             {
                 PathD verticalLine = new PathD 
                 {
@@ -328,20 +329,25 @@ namespace framework_iiw.Modules
                 gridLines.Add(verticalLine);
             }
             
+            // Bereken de inner shells om deze te gebruiken voor de infill te clippen
+            var innerPaths = new PathsD();
+            ClipperD clipperInner = new ClipperD();
+            clipperInner.AddSubject(layer);
+            clipperInner.Execute(ClipType.Xor, FillRule.EvenOdd, innerPaths);
+
+            innerPaths = Clipper.InflatePaths(innerPaths, -(SlicerSettings.NozzleThickness / 2), JoinType.Miter, EndType.Polygon);
+
             // Intersecteer het grid met de polygonen van de laag met Clipper2Lib
-            var infillPaths = new PathsD();
-            ClipperD clipper = new ClipperD();
-
-            clipper.AddPaths(gridLines,PathType.Subject, false);
-            clipper.AddPaths(layer,PathType.Clip, true);
-            // clipper.AddOpenSubject(gridLines);
-            // clipper.AddClip(layer);
-            clipper.Execute(ClipType.Union,FillRule.NonZero, infillPaths);
-
-            Console.WriteLine($"infillPaths: {infillPaths.Count}");
+            var _ = new PathsD();
+            var infillPathsOpen = new PathsD();
             
-            // layer.AddRange(infillPaths);
-            return infillPaths;
+            ClipperD clipper = new ClipperD();
+            clipper.AddOpenSubject(gridLines);
+            clipper.AddClip(innerPaths);
+            clipper.Execute(ClipType.Intersection, FillRule.NonZero, _, infillPathsOpen);
+            
+            // layer.AddRange(infillPathsOpen);
+            return infillPathsOpen;
         }
 
         private void generateGCodes(List<PathsD> layers)
