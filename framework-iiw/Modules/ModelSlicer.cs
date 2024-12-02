@@ -48,6 +48,15 @@ namespace framework_iiw.Modules
 
                 
             }
+            var floors = DetectFloors(layers);
+            var roofs = DetectRoofs(layers);
+            var roofInfills = GenerateInfill(roofs);
+            var floorInfills = GenerateInfill(floors);
+            for(int i = 0; i < layers.Count;i++){
+                layers[i].AddRange(roofInfills[i]);
+                layers[i].AddRange(floorInfills[i]);
+            }
+
             generateGCodes(layers);
             // var layer = SliceModelAtSpecificLayer(sliderValue, meshGeometry3D, triangleIndices, positions);
             // var layers = new List<PathsD>{ layer };
@@ -416,6 +425,109 @@ namespace framework_iiw.Modules
                 file.WriteLine(line);
             }
         }
+
+        public static List<PathsD> DetectFloors(List<PathsD> layers, int shells = 1)
+        {
+            List<PathsD> floors = new List<PathsD>();
+            int numLayers = layers.Count;
+
+            for (int i = 0; i < numLayers; i++)
+            {
+                PathsD currentLayer = layers[i];
+                
+                if (i < shells)
+                {
+                    floors.Add(currentLayer);
+                    continue;
+                }
+                
+                PathsD intersection = layers[i - 1];
+                for (int j = 1; j < shells; j++)
+                {
+                    intersection = Clipper.Intersect(intersection, layers[i - j - 1], FillRule.NonZero);
+                }
+                
+                PathsD floor = Clipper.Difference(currentLayer, intersection, FillRule.NonZero);
+                floors.Add(floor);
+            }
+            
+            return floors;
+        }
+
+         public static List<PathsD> DetectRoofs(List<PathsD> layers, int shells = 1)
+        {
+            List<PathsD> roofs = new List<PathsD>();
+            int numLayers = layers.Count;
+
+            for (int i = 0; i < numLayers; i++)
+            {
+                PathsD currentLayer = layers[i];
+                
+                if (i >= numLayers - shells)
+                {
+                    roofs.Add(currentLayer);
+                    continue;
+                }
+                
+                PathsD intersection = layers[i + 1];
+                for (int j = 1; j < shells; j++)
+                {
+                    intersection = Clipper.Intersect(intersection, layers[i + j + 1], FillRule.NonZero);
+                }
+                
+                PathsD roof = Clipper.Difference(currentLayer, intersection, FillRule.NonZero);
+                roofs.Add(roof);
+            }
+            
+            return roofs;
+        }
+
+        public static List<PathsD> GenerateInfill(List<PathsD> layers)
+        {
+            
+            var newLayers = new List<PathsD>();
+            foreach (var polygons in layers){
+                double nozzleThickness = SlicerSettings.NozzleThickness;
+                PathsD infillLines = new PathsD();
+
+                double minX = double.MaxValue, minY = double.MaxValue;
+                double maxX = double.MinValue, maxY = double.MinValue;
+                
+                foreach (var path in polygons)
+                {
+                    foreach (var point in path)
+                    {
+                        if (point.x < minX) minX = point.x;
+                        if (point.y < minY) minY = point.y;
+                        if (point.x > maxX) maxX = point.x;
+                        if (point.y > maxY) maxY = point.y;
+                    }
+                }
+                
+                for (double y = minY; y <= maxY; y += nozzleThickness)
+                {
+                    PathD line = new PathD
+                    {
+                        new PointD(minX, y),
+                        new PointD(maxX, y)
+                    };
+                    infillLines.Add(line);
+                }
+                var _ = new PathsD();
+                var infillPathsOpen = new PathsD();
+                ClipperD clipper = new ClipperD();
+                clipper.AddOpenSubject(infillLines);
+                clipper.AddClip(polygons);
+                clipper.Execute(ClipType.Intersection, FillRule.NonZero, _, infillPathsOpen);
+                newLayers.Add(infillPathsOpen);
+            }
+            
+            return newLayers;
+            
+        }
+
     }
+
+    
 }
 
