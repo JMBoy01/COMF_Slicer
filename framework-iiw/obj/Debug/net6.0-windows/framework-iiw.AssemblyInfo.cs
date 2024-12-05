@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("framework-iiw")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4e5333ad0bd3e06b9bb95fc50ec904d45d06658d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ee2bb9bf041e7614482abc516faf2a4876d02c54")]
 [assembly: System.Reflection.AssemblyProductAttribute("framework-iiw")]
 [assembly: System.Reflection.AssemblyTitleAttribute("framework-iiw")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
