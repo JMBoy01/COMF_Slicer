@@ -54,14 +54,14 @@ namespace framework_iiw.Modules
 
                 layers.Add(processedLayer);
             }
-            // var floors = DetectFloors(innerlayers);
-            // var roofs = DetectRoofs(innerlayers);
-            // var roofInfills = GenerateInfill(roofs);
-            // var floorInfills = GenerateInfill(floors);
-            // for(int i = 0; i < layers.Count;i++){
-            //     layers[i].AddRange(roofInfills[i]);
-            //     layers[i].AddRange(floorInfills[i]);
-            // }
+            var floors = DetectFloors(innerlayers);
+            var roofs = DetectRoofs(innerlayers);
+            var roofInfills = GenerateInfill(roofs);
+            var floorInfills = GenerateInfill(floors);
+            for(int i = 0; i < layers.Count;i++){
+                layers[i].AddRange(roofInfills[i]);
+                layers[i].AddRange(floorInfills[i]);
+            }
 
             generateGCodes(layers);
             
@@ -338,6 +338,7 @@ namespace framework_iiw.Modules
             
             ClipperD clipper = new ClipperD();
             clipper.AddOpenSubject(gridLines);
+            
             clipper.AddPaths(innerShell, PathType.Clip, false);
             clipper.Execute(ClipType.Intersection, FillRule.NonZero, _, infillPathsOpen);
 
@@ -518,6 +519,8 @@ namespace framework_iiw.Modules
                 clipper.AddOpenSubject(infillLines);
                 clipper.AddPaths(polygons,PathType.Clip, false);
                 clipper.Execute(ClipType.Intersection, FillRule.NonZero, _, infillPathsOpen);
+                infillPathsOpen = Clipper.InflatePaths(infillPathsOpen, -(SlicerSettings.NozzleThickness * 0.5), JoinType.Miter, EndType.Square);
+
                 newLayers.Add(infillPathsOpen);
             }
             
