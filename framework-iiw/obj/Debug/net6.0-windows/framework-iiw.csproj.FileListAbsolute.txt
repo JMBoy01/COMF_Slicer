@@ -52,3 +52,30 @@ C:\School\Computational Fabrication\Taak Slicer\SlicerIIW-framework\framework-ii
 C:\School\Computational Fabrication\Taak Slicer\SlicerIIW-framework\framework-iiw\obj\Debug\net6.0-windows\ref\framework-iiw.dll
 C:\School\Computational Fabrication\Taak Slicer\SlicerIIW-framework\framework-iiw\obj\Debug\net6.0-windows\framework-iiw.sourcelink.json
 C:\School\Computational Fabrication\Taak Slicer\SlicerIIW-framework\framework-iiw\obj\Debug\net6.0-windows\framewor.D49797F0.Up2Date
+C:\Users\ferre\schooljaar_24_25\compfab\COMF_Slicer\framework-iiw\bin\Debug\net6.0-windows\framework-iiw.exe
+C:\Users\ferre\schooljaar_24_25\compfab\COMF_Slicer\framework-iiw\bin\Debug\net6.0-windows\framework-iiw.deps.json
+C:\Users\ferre\schooljaar_24_25\compfab\COMF_Slicer\framework-iiw\bin\Debug\net6.0-windows\framework-iiw.runtimeconfig.json
+C:\Users\ferre\schooljaar_24_25\compfab\COMF_Slicer\framework-iiw\bin\Debug\net6.0-windows\framework-iiw.dll
+C:\Users\ferre\schooljaar_24_25\compfab\COMF_Slicer\framework-iiw\bin\Debug\net6.0-windows\framework-iiw.pdb
+C:\Users\ferre\schooljaar_24_25\compfab\COMF_Slicer\framework-iiw\bin\Debug\net6.0-windows\Clipper2Lib.dll
+C:\Users\ferre\schooljaar_24_25\compfab\COMF_Slicer\framework-iiw\bin\Debug\net6.0-windows\HelixToolkit.dll
+C:\Users\ferre\schooljaar_24_25\compfab\COMF_Slicer\framework-iiw\bin\Debug\net6.0-windows\HelixToolkit.Wpf.dll
+C:\Users\ferre\schooljaar_24_25\compfab\COMF_Slicer\framework-iiw\bin\Debug\net6.0-windows\Microsoft.Extensions.Logging.Abstractions.dll
+C:\Users\ferre\schooljaar_24_25\compfab\COMF_Slicer\framework-iiw\obj\Debug\net6.0-windows\framework-iiw.csproj.AssemblyReference.cache
+C:\Users\ferre\schooljaar_24_25\compfab\COMF_Slicer\framework-iiw\obj\Debug\net6.0-windows\MainWindow.g.cs
+C:\Users\ferre\schooljaar_24_25\compfab\COMF_Slicer\framework-iiw\obj\Debug\net6.0-windows\App.g.cs
+C:\Users\ferre\schooljaar_24_25\compfab\COMF_Slicer\framework-iiw\obj\Debug\net6.0-windows\framework-iiw_MarkupCompile.cache
+C:\Users\ferre\schooljaar_24_25\compfab\COMF_Slicer\framework-iiw\obj\Debug\net6.0-windows\framework-iiw_MarkupCompile.lref
+C:\Users\ferre\schooljaar_24_25\compfab\COMF_Slicer\framework-iiw\obj\Debug\net6.0-windows\MainWindow.baml
+C:\Users\ferre\schooljaar_24_25\compfab\COMF_Slicer\framework-iiw\obj\Debug\net6.0-windows\framework-iiw.g.resources
+C:\Users\ferre\schooljaar_24_25\compfab\COMF_Slicer\framework-iiw\obj\Debug\net6.0-windows\framework-iiw.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\ferre\schooljaar_24_25\compfab\COMF_Slicer\framework-iiw\obj\Debug\net6.0-windows\framework-iiw.AssemblyInfoInputs.cache
+C:\Users\ferre\schooljaar_24_25\compfab\COMF_Slicer\framework-iiw\obj\Debug\net6.0-windows\framework-iiw.AssemblyInfo.cs
+C:\Users\ferre\schooljaar_24_25\compfab\COMF_Slicer\framework-iiw\obj\Debug\net6.0-windows\framework-iiw.csproj.CoreCompileInputs.cache
+C:\Users\ferre\schooljaar_24_25\compfab\COMF_Slicer\framework-iiw\obj\Debug\net6.0-windows\framework-iiw.sourcelink.json
+C:\Users\ferre\schooljaar_24_25\compfab\COMF_Slicer\framework-iiw\obj\Debug\net6.0-windows\framewor.D49797F0.Up2Date
+C:\Users\ferre\schooljaar_24_25\compfab\COMF_Slicer\framework-iiw\obj\Debug\net6.0-windows\framework-iiw.dll
+C:\Users\ferre\schooljaar_24_25\compfab\COMF_Slicer\framework-iiw\obj\Debug\net6.0-windows\refint\framework-iiw.dll
+C:\Users\ferre\schooljaar_24_25\compfab\COMF_Slicer\framework-iiw\obj\Debug\net6.0-windows\framework-iiw.pdb
+C:\Users\ferre\schooljaar_24_25\compfab\COMF_Slicer\framework-iiw\obj\Debug\net6.0-windows\framework-iiw.genruntimeconfig.cache
+C:\Users\ferre\schooljaar_24_25\compfab\COMF_Slicer\framework-iiw\obj\Debug\net6.0-windows\ref\framework-iiw.dll

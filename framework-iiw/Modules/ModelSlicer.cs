@@ -35,6 +35,7 @@ namespace framework_iiw.Modules
             List<Point3D> positions = meshGeometry3D.Positions.ToList();
 
             var layers = new List<PathsD>();
+            var innerlayers = new List<PathsD>();
             var totalAmountOfLayers  = geometryModel3D.Bounds.SizeZ / SlicerSettings.LayerHeight;
 
             for (var idx = 0; idx < totalAmountOfLayers; idx++)
@@ -43,7 +44,7 @@ namespace framework_iiw.Modules
                 List<PathsD> layerWithShell = ProcessContours(layer); // Return layerWithShell = {outerShell, innerShell}
                 PathsD outerShell = layerWithShell[0];
                 PathsD innerShell = layerWithShell[1];
-
+                innerlayers.Add(innerShell);
                 PathsD infillPaths = ProcessInfill(innerShell, meshGeometry3D);
 
                 PathsD processedLayer = new PathsD();
@@ -53,14 +54,14 @@ namespace framework_iiw.Modules
 
                 layers.Add(processedLayer);
             }
-            var floors = DetectFloors(layers);
-            var roofs = DetectRoofs(layers);
-            var roofInfills = GenerateInfill(roofs);
-            var floorInfills = GenerateInfill(floors);
-            for(int i = 0; i < layers.Count;i++){
-                layers[i].AddRange(roofInfills[i]);
-                layers[i].AddRange(floorInfills[i]);
-            }
+            // var floors = DetectFloors(innerlayers);
+            // var roofs = DetectRoofs(innerlayers);
+            // var roofInfills = GenerateInfill(roofs);
+            // var floorInfills = GenerateInfill(floors);
+            // for(int i = 0; i < layers.Count;i++){
+            //     layers[i].AddRange(roofInfills[i]);
+            //     layers[i].AddRange(floorInfills[i]);
+            // }
 
             generateGCodes(layers);
             
@@ -364,23 +365,34 @@ namespace framework_iiw.Modules
                 "G1 X0.4 Y20 Z0.3 F1500 E30",
                 "M107"
             };
-            double height = 0;
+            double currentExtrusion = 0;
+            var format = new System.Globalization.NumberFormatInfo { NumberDecimalSeparator = "." };
             foreach (PathsD paths in layers)
             {
-                height += SlicerSettings.LayerHeight;
+                var zHeight = SlicerSettings.LayerHeight*layers.IndexOf(paths) + 0.20;
+                gcodes.Add($"G1 Z{zHeight.ToString("F2", format)} F3000 ; new layer");
+                
                 foreach (PathD path in paths)
                 {
-                    var zHeight = SlicerSettings.LayerHeight*paths.IndexOf(path);
+                    
                     if (path.Count > 0)
                     {
                         var start = path[0];
-                        // Move to the starting point of the path
-                        gcodes.Add($"G0 X{start.x} Y{start.y} Z{height}");
+                        gcodes.Add($"G0 X{start.x.ToString("F3", format)} Y{start.y.ToString("F3", format)}");
 
-                        // Loop through all points in the path
-                        foreach (var point in path)
+                        for (int i = 1; i < path.Count; i++) 
                         {
-                            gcodes.Add($"G1 X{point.x} Y{point.y} Z{height}");
+                            var point = path[i];
+
+
+                            double dx = point.x - path[i - 1].x;
+                            double dy = point.y - path[i - 1].y;
+                            double distance = Math.Sqrt(dx * dx + dy * dy);
+                            double extrusionRate = 0.1;
+                            currentExtrusion += distance * extrusionRate;
+
+
+                            gcodes.Add($"G1 X{point.x.ToString("F3", format)} Y{point.y.ToString("F3", format)} E{point.y.ToString("F3", format)}");
                         }
                     }
                 }
@@ -502,8 +514,9 @@ namespace framework_iiw.Modules
                 var _ = new PathsD();
                 var infillPathsOpen = new PathsD();
                 ClipperD clipper = new ClipperD();
+
                 clipper.AddOpenSubject(infillLines);
-                clipper.AddClip(polygons);
+                clipper.AddPaths(polygons,PathType.Clip, false);
                 clipper.Execute(ClipType.Intersection, FillRule.NonZero, _, infillPathsOpen);
                 newLayers.Add(infillPathsOpen);
             }
