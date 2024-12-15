@@ -36,6 +36,7 @@ namespace framework_iiw.Modules
 
             var layers = new List<PathsD>();
             var innerlayers = new List<PathsD>();
+            var infills = new List<PathsD>();
             var totalAmountOfLayers  = geometryModel3D.Bounds.SizeZ / SlicerSettings.LayerHeight;
 
             for (var idx = 0; idx < totalAmountOfLayers; idx++)
@@ -46,21 +47,24 @@ namespace framework_iiw.Modules
                 PathsD innerShell = layerWithShell[1];
                 innerlayers.Add(innerShell);
                 PathsD infillPaths = ProcessInfill(innerShell, meshGeometry3D);
-
+                infills.Add(infillPaths);
                 PathsD processedLayer = new PathsD();
                 processedLayer.AddRange(outerShell);
-                processedLayer.AddRange(innerShell);
-                processedLayer.AddRange(infillPaths);
+                //processedLayer.AddRange(innerShell);
+                //processedLayer.AddRange(infillPaths);
 
                 layers.Add(processedLayer);
-            }
+            } 
             var floors = DetectFloors(innerlayers);
             var roofs = DetectRoofs(innerlayers);
+            infills = refineInfills(infills,floors,roofs);
             var roofInfills = GenerateInfill(roofs);
             var floorInfills = GenerateInfill(floors);
+            
             for(int i = 0; i < layers.Count;i++){
                 layers[i].AddRange(roofInfills[i]);
                 layers[i].AddRange(floorInfills[i]);
+                layers[i].AddRange(infills[i]);
             }
 
             generateGCodes(layers);
@@ -69,6 +73,8 @@ namespace framework_iiw.Modules
         }
 
         
+
+
 
 
         // --- Slice Object At Specific Layer
@@ -429,7 +435,7 @@ namespace framework_iiw.Modules
         {
             List<PathsD> floors = new List<PathsD>();
             int numLayers = layers.Count;
-
+            int minAreaThreshold = 10;
             for (int i = 0; i < numLayers; i++)
             {
                 PathsD currentLayer = layers[i];
@@ -447,17 +453,26 @@ namespace framework_iiw.Modules
                 }
                 
                 PathsD floor = Clipper.Difference(currentLayer, intersection, FillRule.NonZero);
-                floors.Add(floor);
+                PathsD filteredFloor = new PathsD();
+                foreach (var path in floor)
+                {
+                    if (Clipper.Area(path) >= minAreaThreshold)
+                    {
+                        filteredFloor.Add(path);
+                    }
+                }
+        
+                floors.Add(filteredFloor);
             }
             
             return floors;
         }
 
-         public static List<PathsD> DetectRoofs(List<PathsD> layers, int shells = 1)
+        public static List<PathsD> DetectRoofs(List<PathsD> layers, int shells = 1)
         {
             List<PathsD> roofs = new List<PathsD>();
             int numLayers = layers.Count;
-
+            int minAreaThreshold = 10;
             for (int i = 0; i < numLayers; i++)
             {
                 PathsD currentLayer = layers[i];
@@ -475,7 +490,16 @@ namespace framework_iiw.Modules
                 }
                 
                 PathsD roof = Clipper.Difference(currentLayer, intersection, FillRule.NonZero);
-                roofs.Add(roof);
+                PathsD filteredRoof = new PathsD();
+                foreach (var path in roof)
+                {
+                    if (Clipper.Area(path) >= minAreaThreshold)
+                    {
+                        filteredRoof.Add(path);
+                    }
+                }
+        
+                roofs.Add(filteredRoof);
             }
             
             return roofs;
@@ -528,8 +552,27 @@ namespace framework_iiw.Modules
             
         }
 
-    }
 
-    
+        private List<PathsD> refineInfills(List<PathsD> infills, List<PathsD> floors, List<PathsD> roofs)
+        {
+            List<PathsD> results = new List<PathsD>();
+            for (int i = 0; i < infills.Count; i++)
+            {
+                var _ = new PathsD();
+                var infillPaths = new PathsD();
+                
+                ClipperD clipper = new ClipperD();
+                clipper.AddOpenSubject(infills[i]);
+                
+                clipper.AddPaths(roofs[i], PathType.Clip, false);
+                clipper.AddPaths(floors[i], PathType.Clip, false);
+                clipper.Execute(ClipType.Difference, FillRule.NonZero, _, infillPaths);
+                results.Add(infillPaths);
+            }
+            return results;
+            
+        }
+    }
 }
+
 
