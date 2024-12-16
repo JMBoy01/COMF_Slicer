@@ -385,7 +385,9 @@ namespace framework_iiw.Modules
                     if (path.Count > 0)
                     {
                         var start = path[0];
+                        gcodes.Add($"G1 E{(currentExtrusion - 1.5).ToString("F3", format)} FF2700");
                         gcodes.Add($"G0 X{start.x.ToString("F3", format)} Y{start.y.ToString("F3", format)}");
+                        gcodes.Add($"G1 E{currentExtrusion.ToString("F3", format)} FF2700");
 
                         for (int i = 1; i < path.Count; i++) 
                         {
@@ -399,7 +401,7 @@ namespace framework_iiw.Modules
                             currentExtrusion += distance * extrusionRate;
 
 
-                            gcodes.Add($"G1 X{point.x.ToString("F3", format)} Y{point.y.ToString("F3", format)} E{point.y.ToString("F3", format)}");
+                            gcodes.Add($"G1 X{point.x.ToString("F3", format)} Y{point.y.ToString("F3", format)} E{currentExtrusion.ToString("F3", format)}");
                         }
                     }
                 }
