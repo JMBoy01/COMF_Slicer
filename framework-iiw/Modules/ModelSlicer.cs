@@ -40,7 +40,7 @@ namespace framework_iiw.Modules
             var infills = new List<PathsD>();
             var totalAmountOfLayers  = geometryModel3D.Bounds.SizeZ / SlicerSettings.LayerHeight;
 
-            Console.WriteLine(totalAmountOfLayers);
+            // Console.WriteLine(totalAmountOfLayers);
 
             for (var idx = 0; idx < totalAmountOfLayers; idx++)
             {
@@ -55,14 +55,6 @@ namespace framework_iiw.Modules
                 outerShells.Add(outerShell);
                 innerShells.Add(innerShell);
                 infills.Add(infillPaths);
-
-                // PathsD processedLayer = new PathsD();
-                // processedLayer.AddRange(outerShell);
-
-                // processedLayer.AddRange(innerShell);
-                // processedLayer.AddRange(infillPaths);
-
-                // layers.Add(processedLayer);
             }
 
             List<PathsD> floorsAndRoofs = ProcessFloorsAndRoofs(innerShells, infills, meshGeometry3D);
@@ -77,20 +69,6 @@ namespace framework_iiw.Modules
 
                 layers.Add(layer);
             }
-
-            // OUDE CODE
-            // var floors = DetectFloors(shells);
-            // var roofs = DetectRoofs(shells);
-            // infills = refineInfills(infills,floors,roofs);
-            // var roofInfills = GenerateFloorAndRoofLines(roofs);
-            // var floorInfills = GenerateFloorAndRoofLines(floors);
-            
-            // for(int i = 0; i < layers.Count;i++){
-            //     layers[i].AddRange(roofInfills[i]);
-            //     layers[i].AddRange(floorInfills[i]);
-            //     layers[i].AddRange(infills[i]);
-            // }
-            // OUDE CODE
 
             generateGCodes(layers);
             
@@ -128,33 +106,23 @@ namespace framework_iiw.Modules
 
                 // Filter floors and roofs on big enough area
                 PathsD usableFloorsAndRoofs = new PathsD();
-                int areaThreshold = 3;
+                int areaThreshold = 10;
                 
-                // TESTING
-                usableFloorsAndRoofs.AddRange(floors);
-                usableFloorsAndRoofs.AddRange(roofs);
+                foreach (var floor in floors) {
+                    floor.Add(floor[0]);
 
-                // var resultFloors = Clipper.BooleanOp(ClipType.Intersection, infills[i], floors, FillRule.NonZero, 1);
-                // if (resultFloors.Count == infills[i].Count) {
-                //     usableFloorsAndRoofs.AddRange(floors);
-                // }
-                // var resultRoofs = Clipper.BooleanOp(ClipType.Intersection, infills[i], roofs, FillRule.NonZero, 1);
-                // if (resultRoofs.Count == infills[i].Count) {
-                //     usableFloorsAndRoofs.AddRange(roofs);
-                // }
-                
-                // foreach (var floor in floors) {
-                //     if (Clipper.Area(floor) > areaThreshold) {
-                //         usableFloorsAndRoofs.Add(floor);
-                //     }
-                // }
+                    if (Math.Abs(Clipper.Area(floor)) > areaThreshold) {
+                        usableFloorsAndRoofs.Add(floor);
+                    }
+                }
 
-                // foreach (var roof in roofs) {
-                //     if (Clipper.Area(roof) > areaThreshold) {
-                //         usableFloorsAndRoofs.Add(roof);
-                //     }
-                // }
-                // TESTING
+                foreach (var roof in roofs) {
+                    roof.Add(roof[0]);
+
+                    if (Math.Abs(Clipper.Area(roof)) > areaThreshold) {
+                        usableFloorsAndRoofs.Add(roof);
+                    }
+                }
 
                 // Generate lines
                 PathsD lines = GenerateFloorAndRoofLines(meshGeometry3D);
@@ -182,7 +150,7 @@ namespace framework_iiw.Modules
             clipper.Execute(clipType, fillRule, _, infillPathsOpen);
 
             // Inflate het uitkomende infill patroon de helft van de nozzle dikte naar binnen zodat infill niet meer buiten de inner shell gaat.
-            infillPathsOpen = Clipper.InflatePaths(infillPathsOpen, -(SlicerSettings.NozzleThickness * 0.5), JoinType.Miter, EndType.Square);
+            infillPathsOpen = Clipper.InflatePaths(infillPathsOpen, -(SlicerSettings.NozzleThickness * 0.5), JoinType.Miter, EndType.Butt, 0, 5);
             
             return infillPathsOpen;
         }
@@ -438,22 +406,7 @@ namespace framework_iiw.Modules
                 gridLines.Add(verticalLine);
             }
 
-            // gridLines = Clipper.InflatePaths(gridLines, -(SlicerSettings.NozzleThickness * 0.5), JoinType.Miter, EndType.Square, 1);
-        
-            // Intersecteer het grid met de polygonen van de laag met Clipper2Lib
-            var _ = new PathsD();
-            var infillPathsOpen = new PathsD();
-            
-            ClipperD clipper = new ClipperD();
-            clipper.AddOpenSubject(gridLines);
-            
-            clipper.AddPaths(innerShell, PathType.Clip, false);
-            clipper.Execute(ClipType.Intersection, FillRule.NonZero, _, infillPathsOpen);
-
-            // Inflate het uitkomende infill patroon de helft van de nozzle dikte naar binnen zodat infill niet meer buiten de inner shell gaat.
-            infillPathsOpen = Clipper.InflatePaths(infillPathsOpen, -(SlicerSettings.NozzleThickness * 0.5), JoinType.Miter, EndType.Square);
-            
-            return infillPathsOpen;
+            return ClipOpenLines(gridLines, innerShell, ClipType.Intersection, FillRule.NonZero);
         }
 
         private void generateGCodes(List<PathsD> layers)
