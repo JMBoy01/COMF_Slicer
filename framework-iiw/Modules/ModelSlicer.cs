@@ -35,66 +35,168 @@ namespace framework_iiw.Modules
             List<Point3D> positions = meshGeometry3D.Positions.ToList();
 
             var layers = new List<PathsD>();
-            var innerlayers = new List<PathsD>();
+            var outerShells = new List<PathsD>();
+            var innerShells = new List<PathsD>();
             var infills = new List<PathsD>();
             var totalAmountOfLayers  = geometryModel3D.Bounds.SizeZ / SlicerSettings.LayerHeight;
+
+            Console.WriteLine(totalAmountOfLayers);
 
             for (var idx = 0; idx < totalAmountOfLayers; idx++)
             {
                 PathsD layer = SliceModelAtSpecificLayer(idx * SlicerSettings.LayerHeight, meshGeometry3D, triangleIndices, positions);
+
                 List<PathsD> layerWithShell = ProcessContours(layer); // Return layerWithShell = {outerShell, innerShell}
                 PathsD outerShell = layerWithShell[0];
                 PathsD innerShell = layerWithShell[1];
-                innerlayers.Add(innerShell);
-                PathsD infillPaths = ProcessInfill(innerShell, meshGeometry3D);
-                infills.Add(infillPaths);
-                PathsD processedLayer = new PathsD();
-                processedLayer.AddRange(outerShell);
-                //processedLayer.AddRange(innerShell);
-                //processedLayer.AddRange(infillPaths);
 
-                layers.Add(processedLayer);
-            } 
-            var floors = DetectFloors(innerlayers);
-            var roofs = DetectRoofs(innerlayers);
-            infills = refineInfills(infills,floors,roofs);
-            var roofInfills = GenerateInfill(roofs);
-            var floorInfills = GenerateInfill(floors);
-            
-            for(int i = 0; i < layers.Count;i++){
-                layers[i].AddRange(roofInfills[i]);
-                layers[i].AddRange(floorInfills[i]);
-                layers[i].AddRange(infills[i]);
+                PathsD infillPaths = ProcessInfill(innerShell, meshGeometry3D);
+
+                outerShells.Add(outerShell);
+                innerShells.Add(innerShell);
+                infills.Add(infillPaths);
+
+                // PathsD processedLayer = new PathsD();
+                // processedLayer.AddRange(outerShell);
+
+                // processedLayer.AddRange(innerShell);
+                // processedLayer.AddRange(infillPaths);
+
+                // layers.Add(processedLayer);
             }
+
+            List<PathsD> floorsAndRoofs = ProcessFloorsAndRoofs(innerShells, infills, meshGeometry3D);
+            
+            // Combine all list in 1 layer list
+            for (int i = 0; i < totalAmountOfLayers; i++) {
+                PathsD layer = new PathsD();
+                layer.AddRange(outerShells[i]);
+                layer.AddRange(innerShells[i]);
+                layer.AddRange(infills[i]);
+                layer.AddRange(floorsAndRoofs[i]);
+
+                layers.Add(layer);
+            }
+
+            // OUDE CODE
+            // var floors = DetectFloors(shells);
+            // var roofs = DetectRoofs(shells);
+            // infills = refineInfills(infills,floors,roofs);
+            // var roofInfills = GenerateFloorAndRoofLines(roofs);
+            // var floorInfills = GenerateFloorAndRoofLines(floors);
+            
+            // for(int i = 0; i < layers.Count;i++){
+            //     layers[i].AddRange(roofInfills[i]);
+            //     layers[i].AddRange(floorInfills[i]);
+            //     layers[i].AddRange(infills[i]);
+            // }
+            // OUDE CODE
 
             generateGCodes(layers);
             
             return layers;
         }
 
-        
+        private List<PathsD> ProcessFloorsAndRoofs(List<PathsD> innerShells, List<PathsD> infills, MeshGeometry3D meshGeometry3D, int floorRoofShells = 1)
+        {
+            List<PathsD> floorsAndRoofs = new List<PathsD>();
 
+            // Detect floors and roofs
+            for (int i = 0; i < innerShells.Count; i++) {
+                if (i < floorRoofShells || innerShells.Count - 1 - i < floorRoofShells) {
+                    // Generate and add lines to list
+                    PathsD floorRooflines = GenerateFloorAndRoofLines(meshGeometry3D);
+                    floorRooflines = ClipOpenLines(floorRooflines, innerShells[i], ClipType.Intersection, FillRule.NonZero);
+                    floorsAndRoofs.Add(floorRooflines);
 
+                    // Remove infill from layers
+                    infills[i] = new PathsD();
+                    continue;
+                }
 
+                PathsD combinedFloors = new PathsD();
+                PathsD combinedRoofs = new PathsD();
+
+                for (int j = 0; j < floorRoofShells; j++) {
+                    // Find all floors and roofs in current layer
+                    combinedFloors = Clipper.BooleanOp(ClipType.Intersection, innerShells[i], innerShells[i-j-1], FillRule.EvenOdd, 5);
+                    combinedRoofs = Clipper.BooleanOp(ClipType.Intersection, innerShells[i], innerShells[i+j+1], FillRule.EvenOdd, 5);
+                }
+
+                PathsD floors = Clipper.BooleanOp(ClipType.Difference, innerShells[i], combinedFloors, FillRule.EvenOdd, 5);
+                PathsD roofs = Clipper.BooleanOp(ClipType.Difference, innerShells[i], combinedRoofs, FillRule.EvenOdd, 5);
+
+                // Filter floors and roofs on big enough area
+                PathsD usableFloorsAndRoofs = new PathsD();
+                int areaThreshold = 3;
+                
+                // TESTING
+                usableFloorsAndRoofs.AddRange(floors);
+                usableFloorsAndRoofs.AddRange(roofs);
+
+                // var resultFloors = Clipper.BooleanOp(ClipType.Intersection, infills[i], floors, FillRule.NonZero, 1);
+                // if (resultFloors.Count == infills[i].Count) {
+                //     usableFloorsAndRoofs.AddRange(floors);
+                // }
+                // var resultRoofs = Clipper.BooleanOp(ClipType.Intersection, infills[i], roofs, FillRule.NonZero, 1);
+                // if (resultRoofs.Count == infills[i].Count) {
+                //     usableFloorsAndRoofs.AddRange(roofs);
+                // }
+                
+                // foreach (var floor in floors) {
+                //     if (Clipper.Area(floor) > areaThreshold) {
+                //         usableFloorsAndRoofs.Add(floor);
+                //     }
+                // }
+
+                // foreach (var roof in roofs) {
+                //     if (Clipper.Area(roof) > areaThreshold) {
+                //         usableFloorsAndRoofs.Add(roof);
+                //     }
+                // }
+                // TESTING
+
+                // Generate lines
+                PathsD lines = GenerateFloorAndRoofLines(meshGeometry3D);
+
+                // Clip lines and infill
+                PathsD linesClipped = ClipOpenLines(lines, usableFloorsAndRoofs, ClipType.Intersection, FillRule.EvenOdd);
+                infills[i] = Clipper.Difference(infills[i], usableFloorsAndRoofs, FillRule.NonZero, 5);
+
+                // Add lines to floors and roofs list
+                floorsAndRoofs.Add(linesClipped);
+            }
+
+            return floorsAndRoofs;
+        }
+
+        private PathsD ClipOpenLines(PathsD openSubject, PathsD clipPaths, ClipType clipType, FillRule fillRule)
+        {
+            var _ = new PathsD();
+            var infillPathsOpen = new PathsD();
+            
+            ClipperD clipper = new ClipperD();
+            clipper.AddOpenSubject(openSubject);
+            
+            clipper.AddPaths(clipPaths, PathType.Clip, false);
+            clipper.Execute(clipType, fillRule, _, infillPathsOpen);
+
+            // Inflate het uitkomende infill patroon de helft van de nozzle dikte naar binnen zodat infill niet meer buiten de inner shell gaat.
+            infillPathsOpen = Clipper.InflatePaths(infillPathsOpen, -(SlicerSettings.NozzleThickness * 0.5), JoinType.Miter, EndType.Square);
+            
+            return infillPathsOpen;
+        }
 
         // --- Slice Object At Specific Layer
-
         private PathsD SliceModelAtSpecificLayer(double layer, MeshGeometry3D meshGeometry, List<int> triangleIndices, List<Point3D> positions)
         {
             var slicingPlaneHeight = GetSlicingPlaneHeight(meshGeometry.Bounds.Z, layer);
-            //Console.WriteLine("slicingPlaneHeight:");
-            //Console.WriteLine(slicingPlaneHeight);
             
             // Get paths according to slicing
             var paths = SlicingAlgorithm(slicingPlaneHeight, triangleIndices, positions);
-            // Console.WriteLine("paths: ");
-            // Console.WriteLine(paths);
 
             // Combine paths
             var combinedPaths = ConnectLineSegments(paths);
-            // Console.WriteLine("combinedPaths: ");
-            // Console.WriteLine(combinedPaths);
-            // Adjust to line segments
 
             return combinedPaths;
         }
@@ -433,146 +535,34 @@ namespace framework_iiw.Modules
             }
         }
 
-        public static List<PathsD> DetectFloors(List<PathsD> layers, int shells = 1)
+        public static PathsD GenerateFloorAndRoofLines(MeshGeometry3D meshGeometry3D)
         {
-            List<PathsD> floors = new List<PathsD>();
-            int numLayers = layers.Count;
-            int minAreaThreshold = 10;
-            for (int i = 0; i < numLayers; i++)
+            var meshBounds = meshGeometry3D.Bounds;
+            
+            // Bepaal de bounding box van het model in X en Y
+            double minX = meshBounds.X;
+            double minY = meshBounds.Y;
+            double maxX = meshBounds.X + meshBounds.SizeX;
+            double maxY = meshBounds.Y + meshBounds.SizeY;
+            
+            // Bereken de infill-spatiëring (bijvoorbeeld 10% van de nozzle-diameter of een andere waarde)
+            double lineSpacingY = SlicerSettings.NozzleThickness; // Aanpassen aan de gewenste infill-dichtheid
+            
+            // Genereer het rasterpatroon
+            var gridLines = new PathsD();
+            
+            // Horizontale lijnen
+            for (double y = minY; y <= maxY; y += lineSpacingY)
             {
-                PathsD currentLayer = layers[i];
-                
-                if (i < shells)
+                PathD horizontalLine = new PathD 
                 {
-                    floors.Add(currentLayer);
-                    continue;
-                }
-                
-                PathsD intersection = layers[i - 1];
-                for (int j = 1; j < shells; j++)
-                {
-                    intersection = Clipper.Intersect(intersection, layers[i - j - 1], FillRule.NonZero);
-                }
-                
-                PathsD floor = Clipper.Difference(currentLayer, intersection, FillRule.NonZero);
-                PathsD filteredFloor = new PathsD();
-                foreach (var path in floor)
-                {
-                    if (Clipper.Area(path) >= minAreaThreshold)
-                    {
-                        filteredFloor.Add(path);
-                    }
-                }
-        
-                floors.Add(filteredFloor);
+                    new PointD(minX, y),
+                    new PointD(maxX, y)
+                };
+                gridLines.Add(horizontalLine);
             }
             
-            return floors;
-        }
-
-        public static List<PathsD> DetectRoofs(List<PathsD> layers, int shells = 1)
-        {
-            List<PathsD> roofs = new List<PathsD>();
-            int numLayers = layers.Count;
-            int minAreaThreshold = 10;
-            for (int i = 0; i < numLayers; i++)
-            {
-                PathsD currentLayer = layers[i];
-                
-                if (i >= numLayers - shells)
-                {
-                    roofs.Add(currentLayer);
-                    continue;
-                }
-                
-                PathsD intersection = layers[i + 1];
-                for (int j = 1; j < shells; j++)
-                {
-                    intersection = Clipper.Intersect(intersection, layers[i + j + 1], FillRule.NonZero);
-                }
-                
-                PathsD roof = Clipper.Difference(currentLayer, intersection, FillRule.NonZero);
-                PathsD filteredRoof = new PathsD();
-                foreach (var path in roof)
-                {
-                    if (Clipper.Area(path) >= minAreaThreshold)
-                    {
-                        filteredRoof.Add(path);
-                    }
-                }
-        
-                roofs.Add(filteredRoof);
-            }
-            
-            return roofs;
-        }
-
-        public static List<PathsD> GenerateInfill(List<PathsD> layers)
-        {
-            
-            var newLayers = new List<PathsD>();
-            foreach (var polygons in layers){
-                double nozzleThickness = SlicerSettings.NozzleThickness;
-                PathsD infillLines = new PathsD();
-
-                double minX = double.MaxValue, minY = double.MaxValue;
-                double maxX = double.MinValue, maxY = double.MinValue;
-                
-                foreach (var path in polygons)
-                {
-                    foreach (var point in path)
-                    {
-                        if (point.x < minX) minX = point.x;
-                        if (point.y < minY) minY = point.y;
-                        if (point.x > maxX) maxX = point.x;
-                        if (point.y > maxY) maxY = point.y;
-                    }
-                }
-                
-                for (double y = minY; y <= maxY; y += nozzleThickness)
-                {
-                    PathD line = new PathD
-                    {
-                        new PointD(minX, y),
-                        new PointD(maxX, y)
-                    };
-                    infillLines.Add(line);
-                }
-                var _ = new PathsD();
-                var infillPathsOpen = new PathsD();
-                ClipperD clipper = new ClipperD();
-
-                clipper.AddOpenSubject(infillLines);
-                clipper.AddPaths(polygons,PathType.Clip, false);
-                clipper.Execute(ClipType.Intersection, FillRule.NonZero, _, infillPathsOpen);
-                infillPathsOpen = Clipper.InflatePaths(infillPathsOpen, -(SlicerSettings.NozzleThickness * 0.5), JoinType.Miter, EndType.Square);
-
-                newLayers.Add(infillPathsOpen);
-            }
-            
-            return newLayers;
-            
-        }
-
-
-        private List<PathsD> refineInfills(List<PathsD> infills, List<PathsD> floors, List<PathsD> roofs)
-        {
-            List<PathsD> results = new List<PathsD>();
-            for (int i = 0; i < infills.Count; i++)
-            {
-                var _ = new PathsD();
-                var infillPaths = new PathsD();
-                
-                ClipperD clipper = new ClipperD();
-                clipper.AddOpenSubject(infills[i]);
-                
-                clipper.AddPaths(roofs[i], PathType.Clip, false);
-                clipper.AddPaths(floors[i], PathType.Clip, false);
-                clipper.Execute(ClipType.Difference, FillRule.NonZero, _, infillPaths);
-                results.Add(infillPaths);
-            }
-            return results;
-            
+            return gridLines;
         }
     }
 }
