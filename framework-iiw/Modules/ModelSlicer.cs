@@ -58,7 +58,7 @@ namespace framework_iiw.Modules
                 infills.Add(infillPaths);
             }
 
-            List<PathsD> floorsAndRoofs = ProcessFloorsAndRoofs(innerShells, infills, meshGeometry3D);
+            List<PathsD> floorsAndRoofs = ProcessFloorsAndRoofs(innerShells, infills, meshGeometry3D, 3);
             
             // Combine all list in 1 layer list
             for (int i = 0; i < totalAmountOfLayers; i++) {
@@ -86,9 +86,10 @@ namespace framework_iiw.Modules
 
             // Detect floors and roofs
             for (int i = 0; i < innerShells.Count; i++) {
+                bool horizontal = i%2 == 0;
                 if (i < floorRoofShells || innerShells.Count - 1 - i < floorRoofShells) {
                     // Generate and add lines to list
-                    PathsD floorRooflines = GenerateFloorAndRoofLines(meshGeometry3D);
+                    PathsD floorRooflines = GenerateFloorAndRoofLines(meshGeometry3D, horizontal);
                     floorRooflines = ClipOpenLines(floorRooflines, innerShells[i], ClipType.Intersection, FillRule.NonZero);
                     floorsAndRoofs.Add(floorRooflines);
 
@@ -130,7 +131,7 @@ namespace framework_iiw.Modules
                 }
 
                 // Generate lines
-                PathsD lines = GenerateFloorAndRoofLines(meshGeometry3D);
+                PathsD lines = GenerateFloorAndRoofLines(meshGeometry3D, horizontal);
 
                 // Clip lines and infill
                 PathsD linesClipped = ClipOpenLines(lines, usableFloorsAndRoofs, ClipType.Intersection, FillRule.EvenOdd);
@@ -548,7 +549,7 @@ namespace framework_iiw.Modules
             }
         }
 
-        public static PathsD GenerateFloorAndRoofLines(MeshGeometry3D meshGeometry3D)
+        public static PathsD GenerateFloorAndRoofLines(MeshGeometry3D meshGeometry3D, bool horizontal = true)
         {
             var meshBounds = meshGeometry3D.Bounds;
             
@@ -559,20 +560,33 @@ namespace framework_iiw.Modules
             double maxY = meshBounds.Y + meshBounds.SizeY;
             
             // Bereken de infill-spatiëring (bijvoorbeeld 10% van de nozzle-diameter of een andere waarde)
-            double lineSpacingY = SlicerSettings.NozzleThickness * 2; // Aanpassen aan de gewenste infill-dichtheid
+            double lineSpacing = SlicerSettings.NozzleThickness * 2; // Aanpassen aan de gewenste infill-dichtheid
             
             // Genereer het rasterpatroon
             var gridLines = new PathsD();
             
-            // Horizontale lijnen
-            for (double y = minY; y <= maxY; y += lineSpacingY)
-            {
-                PathD horizontalLine = new PathD 
+            if (horizontal) {
+                // Horizontale lijnen
+                for (double y = minY; y <= maxY; y += lineSpacing)
                 {
-                    new PointD(minX, y),
-                    new PointD(maxX, y)
-                };
-                gridLines.Add(horizontalLine);
+                    PathD horizontalLine = new PathD 
+                    {
+                        new PointD(minX, y),
+                        new PointD(maxX, y)
+                    };
+                    gridLines.Add(horizontalLine);
+                }
+            }
+            else {
+                for (double x = minX; x <= maxX; x += lineSpacing)
+                {
+                    PathD verticalLine = new PathD 
+                    {
+                        new PointD(x, minY),
+                        new PointD(x, maxY)
+                    };
+                    gridLines.Add(verticalLine);
+                }
             }
             
             return gridLines;
