@@ -431,11 +431,8 @@ namespace framework_iiw.Modules
                 "G28",
                 "G92 E0",
                 "G1 Z2.0 F3000",
-                "G1 X0.1 Y20 Z0.3 F5000",
-                "G1 X0.1 Y200 Z0.3 F1500 E15",
-                "G1 X0.4 Y200 Z0.3 F5000",
-                "G1 X0.4 Y20 Z0.3 F1500 E30",
-                "G1 Z2.0 F3000",
+                "G92 E0",
+                "G1 F2400 E-5",
                 "M107"
             };
             double currentExtrusion = 0;
@@ -517,7 +514,7 @@ namespace framework_iiw.Modules
             double maxY = meshBounds.Y + meshBounds.SizeY;
             
             // Bereken de infill-spatiëring (bijvoorbeeld 10% van de nozzle-diameter of een andere waarde)
-            double lineSpacingY = SlicerSettings.NozzleThickness; // Aanpassen aan de gewenste infill-dichtheid
+            double lineSpacingY = SlicerSettings.NozzleThickness * 2; // Aanpassen aan de gewenste infill-dichtheid
             
             // Genereer het rasterpatroon
             var gridLines = new PathsD();
