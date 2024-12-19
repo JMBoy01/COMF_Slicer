@@ -484,7 +484,7 @@ namespace framework_iiw.Modules
                 var floorsNRoofsPaths = floorsNRoofs[layerIndex];
                 gcodes.Add(";        floors and roofs");
                 gcodes.Add("M106 S200");
-                gcodes.Add("G1 F2000");
+                gcodes.Add("G1 F1000");
                 foreach (PathD path in floorsNRoofsPaths)
                 {
                     PathD newPath = new PathD();
