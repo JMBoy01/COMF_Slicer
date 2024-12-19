@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Printing.IndexedProperties;
+using System.Windows;
 using System.Windows.Media.Media3D;
 using System.Windows.Media.TextFormatting;
 using LineSegment = framework_iiw.Data_Structures.LineSegment;
@@ -70,7 +71,7 @@ namespace framework_iiw.Modules
                 layers.Add(layer);
             }
 
-            generateGCodes(layers);
+            generateGCodes(layers,meshGeometry3D);
             
             return layers;
         }
@@ -361,7 +362,12 @@ namespace framework_iiw.Modules
 
             innerShell = Clipper.InflatePaths(innerShell, -(SlicerSettings.NozzleThickness * 1.5), JoinType.Miter, EndType.Polygon);
             innerShell = Clipper.SimplifyPaths(innerShell, 0.1);
-
+            foreach(var inner in innerShell){
+                inner.Add(inner[0]);
+            }
+            foreach(var outer in outerShell){
+                outer.Add(outer[0]);
+            }
             return new List<PathsD>{outerShell, innerShell};
         }
 
@@ -409,8 +415,12 @@ namespace framework_iiw.Modules
             return ClipOpenLines(gridLines, innerShell, ClipType.Intersection, FillRule.NonZero);
         }
 
-        private void generateGCodes(List<PathsD> layers)
-        {            
+        private void generateGCodes(List<PathsD> layers,MeshGeometry3D meshGeometry3D)
+        {     
+            var meshBounds = meshGeometry3D.Bounds;
+       
+            var widthX = meshBounds.SizeX;
+            var widthY = meshBounds.SizeY;
             List<string> gcodes = new List<string>
             {
                 "M140 S60",
@@ -431,26 +441,36 @@ namespace framework_iiw.Modules
             var format = new System.Globalization.NumberFormatInfo { NumberDecimalSeparator = "." };
             foreach (PathsD paths in layers)
             {
+                
                 var zHeight = SlicerSettings.LayerHeight*layers.IndexOf(paths) + 0.20;
                 gcodes.Add($"G1 Z{zHeight.ToString("F2", format)} F3000 ; new layer");
                 
                 foreach (PathD path in paths)
                 {
-                    
-                    if (path.Count > 0)
+                    PathD newPath = new PathD();
+                    foreach(var point in path){
+                        newPath.Add(new PointD(point.x + 200 - widthX/2,point.y + 200 - widthY/2));
+                    }
+                    if (newPath.Count > 0)
                     {
-                        var start = path[0];
-                        gcodes.Add($"G1 E{(currentExtrusion - 1.5).ToString("F3", format)} FF2700");
-                        gcodes.Add($"G0 X{start.x.ToString("F3", format)} Y{start.y.ToString("F3", format)}");
-                        gcodes.Add($"G1 E{currentExtrusion.ToString("F3", format)} FF2700");
+                        var start = newPath[0];
+                        if(paths.IndexOf(newPath) == 0){
+                            gcodes.Add($"G0 X{start.x.ToString("F3", format)} Y{start.y.ToString("F3", format)}");
+                        }
+                        else {
+                            gcodes.Add($"G1 E{(currentExtrusion - 1.5).ToString("F3", format)} FF2700");
+                            gcodes.Add($"G0 X{start.x.ToString("F3", format)} Y{start.y.ToString("F3", format)}");
+                            gcodes.Add($"G1 E{currentExtrusion.ToString("F3", format)} FF2700");
+                        }
+                        
 
-                        for (int i = 1; i < path.Count; i++) 
+                        for (int i = 1; i < newPath.Count; i++) 
                         {
-                            var point = path[i];
+                            var point = newPath[i];
 
 
-                            double dx = point.x - path[i - 1].x;
-                            double dy = point.y - path[i - 1].y;
+                            double dx = point.x - newPath[i - 1].x;
+                            double dy = point.y - newPath[i - 1].y;
                             double distance = Math.Sqrt(dx * dx + dy * dy);
                             double extrusionRate = 0.1;
                             currentExtrusion += distance * extrusionRate;

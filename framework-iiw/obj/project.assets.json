@@ -172,19 +172,19 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\jan-m\\.nuget\\packages\\": {}
+    "C:\\Users\\ferre\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\School\\Computational Fabrication\\Taak Slicer\\COMF_Slicer\\framework-iiw\\framework-iiw.csproj",
+      "projectUniqueName": "C:\\Users\\ferre\\schooljaar_24_25\\compfab\\COMF_Slicer\\framework-iiw\\framework-iiw.csproj",
       "projectName": "framework-iiw",
-      "projectPath": "C:\\School\\Computational Fabrication\\Taak Slicer\\COMF_Slicer\\framework-iiw\\framework-iiw.csproj",
-      "packagesPath": "C:\\Users\\jan-m\\.nuget\\packages\\",
-      "outputPath": "C:\\School\\Computational Fabrication\\Taak Slicer\\COMF_Slicer\\framework-iiw\\obj\\",
+      "projectPath": "C:\\Users\\ferre\\schooljaar_24_25\\compfab\\COMF_Slicer\\framework-iiw\\framework-iiw.csproj",
+      "packagesPath": "C:\\Users\\ferre\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\ferre\\schooljaar_24_25\\compfab\\COMF_Slicer\\framework-iiw\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\jan-m\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "C:\\Users\\ferre\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net6.0-windows"
@@ -207,7 +207,8 @@
         "enableAudit": "true",
         "auditLevel": "low",
         "auditMode": "direct"
-      }
+      },
+      "SdkAnalysisLevel": "9.0.100"
     },
     "frameworks": {
       "net6.0-windows7.0": {
@@ -240,19 +241,19 @@
         "downloadDependencies": [
           {
             "name": "Microsoft.AspNetCore.App.Ref",
-            "version": "[6.0.35, 6.0.35]"
+            "version": "[6.0.36, 6.0.36]"
           },
           {
             "name": "Microsoft.NETCore.App.Host.win-x64",
-            "version": "[6.0.35, 6.0.35]"
+            "version": "[6.0.36, 6.0.36]"
           },
           {
             "name": "Microsoft.NETCore.App.Ref",
-            "version": "[6.0.35, 6.0.35]"
+            "version": "[6.0.36, 6.0.36]"
           },
           {
             "name": "Microsoft.WindowsDesktop.App.Ref",
-            "version": "[6.0.35, 6.0.35]"
+            "version": "[6.0.36, 6.0.36]"
           }
         ],
         "frameworkReferences": {
@@ -263,7 +264,7 @@
             "privateAssets": "none"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.403\\RuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.101\\RuntimeIdentifierGraph.json"
       }
     }
   },

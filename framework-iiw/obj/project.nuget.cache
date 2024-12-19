@@ -1,17 +1,17 @@
 {
   "version": 2,
-  "dgSpecHash": "hFY+f2vjHwU=",
+  "dgSpecHash": "KK4r0B8v3LA=",
   "success": true,
-  "projectFilePath": "C:\\School\\Computational Fabrication\\Taak Slicer\\COMF_Slicer\\framework-iiw\\framework-iiw.csproj",
+  "projectFilePath": "C:\\Users\\ferre\\schooljaar_24_25\\compfab\\COMF_Slicer\\framework-iiw\\framework-iiw.csproj",
   "expectedPackageFiles": [
-    "C:\\Users\\jan-m\\.nuget\\packages\\clipper2\\1.2.3\\clipper2.1.2.3.nupkg.sha512",
-    "C:\\Users\\jan-m\\.nuget\\packages\\helixtoolkit\\2.24.0\\helixtoolkit.2.24.0.nupkg.sha512",
-    "C:\\Users\\jan-m\\.nuget\\packages\\helixtoolkit.wpf\\2.24.0\\helixtoolkit.wpf.2.24.0.nupkg.sha512",
-    "C:\\Users\\jan-m\\.nuget\\packages\\microsoft.extensions.logging.abstractions\\6.0.0\\microsoft.extensions.logging.abstractions.6.0.0.nupkg.sha512",
-    "C:\\Users\\jan-m\\.nuget\\packages\\microsoft.netcore.app.ref\\6.0.35\\microsoft.netcore.app.ref.6.0.35.nupkg.sha512",
-    "C:\\Users\\jan-m\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\6.0.35\\microsoft.windowsdesktop.app.ref.6.0.35.nupkg.sha512",
-    "C:\\Users\\jan-m\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\6.0.35\\microsoft.aspnetcore.app.ref.6.0.35.nupkg.sha512",
-    "C:\\Users\\jan-m\\.nuget\\packages\\microsoft.netcore.app.host.win-x64\\6.0.35\\microsoft.netcore.app.host.win-x64.6.0.35.nupkg.sha512"
+    "C:\\Users\\ferre\\.nuget\\packages\\clipper2\\1.2.3\\clipper2.1.2.3.nupkg.sha512",
+    "C:\\Users\\ferre\\.nuget\\packages\\helixtoolkit\\2.24.0\\helixtoolkit.2.24.0.nupkg.sha512",
+    "C:\\Users\\ferre\\.nuget\\packages\\helixtoolkit.wpf\\2.24.0\\helixtoolkit.wpf.2.24.0.nupkg.sha512",
+    "C:\\Users\\ferre\\.nuget\\packages\\microsoft.extensions.logging.abstractions\\6.0.0\\microsoft.extensions.logging.abstractions.6.0.0.nupkg.sha512",
+    "C:\\Users\\ferre\\.nuget\\packages\\microsoft.netcore.app.ref\\6.0.36\\microsoft.netcore.app.ref.6.0.36.nupkg.sha512",
+    "C:\\Users\\ferre\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\6.0.36\\microsoft.windowsdesktop.app.ref.6.0.36.nupkg.sha512",
+    "C:\\Users\\ferre\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\6.0.36\\microsoft.aspnetcore.app.ref.6.0.36.nupkg.sha512",
+    "C:\\Users\\ferre\\.nuget\\packages\\microsoft.netcore.app.host.win-x64\\6.0.36\\microsoft.netcore.app.host.win-x64.6.0.36.nupkg.sha512"
   ],
   "logs": [
     {
