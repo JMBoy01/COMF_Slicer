@@ -447,7 +447,7 @@ namespace framework_iiw.Modules
                 var zHeight = SlicerSettings.LayerHeight*layers.IndexOf(paths) + 0.2;
                 gcodes.Add($"G1 Z{zHeight.ToString("F2", format)} F3000 ; new layer");
                 gcodes.Add(";        infill and shells");
-                gcodes.Add("M107");
+                gcodes.Add("M106 S100");
                 gcodes.Add("G1 3600");
                 foreach (PathD path in paths)
                 {
