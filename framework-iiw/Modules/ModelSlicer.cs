@@ -66,13 +66,17 @@ namespace framework_iiw.Modules
                 layer.AddRange(outerShells[i]);
                 layer.AddRange(innerShells[i]);
                 layer.AddRange(infills[i]);
-                layer.AddRange(floorsAndRoofs[i]);
+                //layer.AddRange(floorsAndRoofs[i]);
 
                 layers.Add(layer);
             }
 
-            generateGCodes(layers,meshGeometry3D);
+            generateGCodes(layers,floorsAndRoofs,meshGeometry3D);
             
+            for (int i = 0; i < totalAmountOfLayers; i++) {
+                
+                layers[i].AddRange(floorsAndRoofs[i]);
+            }
             return layers;
         }
 
@@ -384,8 +388,8 @@ namespace framework_iiw.Modules
             // Console.WriteLine($"meshBounds -> minX: {minX} | minY: {minY} | maxX: {maxX} | maxY: {maxY}");
             
             // Bereken de infill-spatiëring (bijvoorbeeld 10% van de nozzle-diameter of een andere waarde)
-            double lineSpacingX = (maxX - minX)/10; // Aanpassen aan de gewenste infill-dichtheid
-            double lineSpacingY = (maxY - minY)/10; // Aanpassen aan de gewenste infill-dichtheid
+            double lineSpacingX = (maxX - minX)/13; // Aanpassen aan de gewenste infill-dichtheid
+            double lineSpacingY = (maxY - minY)/13; // Aanpassen aan de gewenste infill-dichtheid
             
             // Genereer het rasterpatroon
             var gridLines = new PathsD();
@@ -415,7 +419,7 @@ namespace framework_iiw.Modules
             return ClipOpenLines(gridLines, innerShell, ClipType.Intersection, FillRule.NonZero);
         }
 
-        private void generateGCodes(List<PathsD> layers,MeshGeometry3D meshGeometry3D)
+        private void generateGCodes(List<PathsD> layers,List<PathsD> floorsNRoofs,MeshGeometry3D meshGeometry3D)
         {     
             var meshBounds = meshGeometry3D.Bounds;
        
@@ -437,12 +441,14 @@ namespace framework_iiw.Modules
             };
             double currentExtrusion = 0;
             var format = new System.Globalization.NumberFormatInfo { NumberDecimalSeparator = "." };
-            foreach (PathsD paths in layers)
+            for (int layerIndex = 0; layerIndex < layers.Count; layerIndex++)
             {
-                
+                var paths = layers[layerIndex];
                 var zHeight = SlicerSettings.LayerHeight*layers.IndexOf(paths) + 0.2;
                 gcodes.Add($"G1 Z{zHeight.ToString("F2", format)} F3000 ; new layer");
-                
+                gcodes.Add(";        infill and shells");
+                gcodes.Add("M107");
+                gcodes.Add("G1 3600");
                 foreach (PathD path in paths)
                 {
                     PathD newPath = new PathD();
@@ -475,6 +481,45 @@ namespace framework_iiw.Modules
                         }
                     }
                 }
+                var floorsNRoofsPaths = floorsNRoofs[layerIndex];
+                gcodes.Add(";        floors and roofs");
+                gcodes.Add("M106 S200");
+                gcodes.Add("G1 F2000");
+                foreach (PathD path in floorsNRoofsPaths)
+                {
+                    PathD newPath = new PathD();
+                    foreach(var point in path){
+                        newPath.Add(new PointD(point.x + 100 - widthX/2,point.y + 100 - widthY/2));
+                    }
+                    if (newPath.Count > 0)
+                    {
+                        var start = newPath[0];
+
+                        gcodes.Add($"G1 E{(currentExtrusion - 1.5).ToString("F3", format)} FF2700");
+                        gcodes.Add($"G0 X{start.x.ToString("F3", format)} Y{start.y.ToString("F3", format)}");
+                        gcodes.Add($"G1 E{currentExtrusion.ToString("F3", format)} FF2700");
+                    
+                        
+
+                        for (int i = 1; i < newPath.Count; i++) 
+                        {
+                            var point = newPath[i];
+
+
+                            double dx = point.x - newPath[i - 1].x;
+                            double dy = point.y - newPath[i - 1].y;
+                            double distance = Math.Sqrt(dx * dx + dy * dy);
+                            double extrusionRate = 0.04;
+                            currentExtrusion += distance * extrusionRate;
+
+
+                            gcodes.Add($"G1 X{point.x.ToString("F3", format)} Y{point.y.ToString("F3", format)} E{currentExtrusion.ToString("F3", format)}");
+                        }
+                    }
+                }
+
+                
+            
             }
 
             gcodes.Add("M140 S0");
