@@ -435,6 +435,7 @@ namespace framework_iiw.Modules
                 "G1 X0.1 Y200 Z0.3 F1500 E15",
                 "G1 X0.4 Y200 Z0.3 F5000",
                 "G1 X0.4 Y20 Z0.3 F1500 E30",
+                "G1 Z2.0 F3000",
                 "M107"
             };
             double currentExtrusion = 0;
@@ -442,26 +443,23 @@ namespace framework_iiw.Modules
             foreach (PathsD paths in layers)
             {
                 
-                var zHeight = SlicerSettings.LayerHeight*layers.IndexOf(paths) + 0.20;
+                var zHeight = SlicerSettings.LayerHeight*layers.IndexOf(paths) + 0.2;
                 gcodes.Add($"G1 Z{zHeight.ToString("F2", format)} F3000 ; new layer");
                 
                 foreach (PathD path in paths)
                 {
                     PathD newPath = new PathD();
                     foreach(var point in path){
-                        newPath.Add(new PointD(point.x + 200 - widthX/2,point.y + 200 - widthY/2));
+                        newPath.Add(new PointD(point.x + 100 - widthX/2,point.y + 100 - widthY/2));
                     }
                     if (newPath.Count > 0)
                     {
                         var start = newPath[0];
-                        if(paths.IndexOf(newPath) == 0){
-                            gcodes.Add($"G0 X{start.x.ToString("F3", format)} Y{start.y.ToString("F3", format)}");
-                        }
-                        else {
-                            gcodes.Add($"G1 E{(currentExtrusion - 1.5).ToString("F3", format)} FF2700");
-                            gcodes.Add($"G0 X{start.x.ToString("F3", format)} Y{start.y.ToString("F3", format)}");
-                            gcodes.Add($"G1 E{currentExtrusion.ToString("F3", format)} FF2700");
-                        }
+
+                        gcodes.Add($"G1 E{(currentExtrusion - 1.5).ToString("F3", format)} FF2700");
+                        gcodes.Add($"G0 X{start.x.ToString("F3", format)} Y{start.y.ToString("F3", format)}");
+                        gcodes.Add($"G1 E{currentExtrusion.ToString("F3", format)} FF2700");
+                    
                         
 
                         for (int i = 1; i < newPath.Count; i++) 
@@ -472,7 +470,7 @@ namespace framework_iiw.Modules
                             double dx = point.x - newPath[i - 1].x;
                             double dy = point.y - newPath[i - 1].y;
                             double distance = Math.Sqrt(dx * dx + dy * dy);
-                            double extrusionRate = 0.1;
+                            double extrusionRate = 0.04;
                             currentExtrusion += distance * extrusionRate;
 
 
